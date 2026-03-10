@@ -1,4 +1,5 @@
 # AUCS: Texas Hack'em
+![AUCS Logo](https://www.ausa.org.uk/asset/Organisation/26976/LogoColoured.png?thumbnail_width=480&thumbnail_height=100&resize_type=ResizeWidth)
 
 ## Overview
 Welcome to Texas Hack'em!
@@ -177,6 +178,14 @@ By default, it runs **1,000** matches and reports the best bot's win rate.
 - Submit your completed `main.py` file into the #hackathon-submissions channel in the AUCS discord.
 - Ensure to give a unique name to your bot by changing the `name` variable in `MyPlayer`.
 
+Do not use any external APIs, do not obfuscate your code, do not write to any files.
+You can use standard Python libraries such as `itertools` if it helps with your solution, but do not use any external libraries (ones you need to install with `pip`).
+
+I will be reading the code of the winning submissions to validate them.
+
+Note that you or your team can be disqualified for any reason deemed fit by an AUCS Board Member, such as trying to find a loophole in the rules.
+Just be a good sportsman and enjoy the hackathon!
+
 ### Scoring
 Each bot will have 1,000 heads-up matches against each other bot, for example, if there are 10 submissions then there will be 45 matchups and 45,000 games, which will be hundreds of millions of individual hands!
 
@@ -186,11 +195,6 @@ The bots will then be scored based on the number of wins, in the event that mult
 While I have implemented some basic sanity checks (checking that a player hasn't given themselves chips or changed their cards), this was mainly just to make it easier to find bugs during development.
 
 I am fully aware that it is possible to use Python's garbage collector (among other methods) to hook into things you are not meant to have access to.
-For example, while you could access the opponent's bot and override their move function to always fold, doing this will automatically void your submission.
-
-Do not use any external APIs, do not obfuscate your code, do not write to any files.
-You can use standard Python libraries such as `itertools` if it helps with your solution, but do not use any external libraries (ones you need to install with `pip`).
-
-I will be reading the code of every submission to check for any potential cheats.
+For example, while you could access the opponent's bot and override their move function to always fold, doing this just takes the fun out of the event for everyone involved (you'll also be disqualified).
 
 If you are unsure about anything or have any questions, ask a member of AUCS, we're happy to help!
