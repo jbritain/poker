@@ -14,6 +14,13 @@ MATCHES = 1
 # For development I recommend not processing in parallel as it can make it much harder to find errors
 PARALLEL = False
 
+# https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
+def lerp(a: float, b: float, t: float) -> float:
+    return (1 - t) * a + t * b
+    
+def saturate(v):
+    return max(0.0, min(1.0, v))
+    
 
 class MyPlayer(Player):
     name = "crAAcked"
@@ -168,6 +175,27 @@ class MyPlayer(Player):
             return round_history[0][1]
         return round_history[-1][1] + round_history[-2][1]
 
+    def aggression_heuristic(bet, min_bet):
+        if bet < min_bet:
+            return 0.0
+
+        # between 1 and 3xbig blind interpolate to 0.5
+        if bet < min_bet * 3:
+            return lerp(min_bet, min_bet * 3, bet) * 0.5
+
+        return saturate(lerp(min_bet * 3, min_bet * 6, bet))
+    
+    def get_bet_amount(current_opponent_aggression, average_opponent_aggression, equity, min_bet):
+        aggression_ratio = current_opponent_aggression / average_opponent_aggression
+        aggression_ratio = saturate(lerp(0, 2, aggression_ratio))
+        
+        bet_amount = aggression_ratio * (1.0 - equity)
+        if bet_amount < 0.25:
+            return 0
+        bet_amount = saturate(lerp(0.25, 0.75, bet_amount))
+        bet_amount = bet_amount * min_bet * 5 + min_bet
+        return bet_amount
+        
     def move(self, community_cards: list[str], valid_moves: list[Move], round_history: list[tuple[Move, int]], min_bet: int, max_bet: int,) -> tuple[Move, int] | Move:
         """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
