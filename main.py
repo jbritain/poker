@@ -3,7 +3,7 @@ from phevaluator.evaluator import evaluate_cards
 from logic import Move, Game, Player, HandRank, RockyPlayer, RandomPlayer
 from collections import Counter
 from multiprocessing import Pool, cpu_count
-import random
+import math
 
 # Feel free to set a seed for testing, otherwise leave commmented out to test your bot in a variety of random spots
 # Note that you cannot set a seed and run the simulation in parallel
@@ -15,9 +15,22 @@ MATCHES = 1000
 PARALLEL = False
 
 
+# https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
+def lerp(a: float, b: float, t: float) -> float:
+    return (1 - t) * a + t * b
+
+
 class MyPlayer(Player):
     name = "crAAcked"
     image_path = "images/your_image.png"  # Optional
+
+    def __init__(self):
+        super().__init__(self)
+        self.opponent_aggression = 0.5
+        self.average_opponent_aggression = (
+            0.5  # 1 = maximally aggressive, 0.5 = minimally aggressive
+        )
+        self.hands_played = 0
 
     def get_hand_type(self, community_cards: list[str]) -> HandRank:
         # Handle pre flop calls
@@ -35,9 +48,51 @@ class MyPlayer(Player):
         raise IndexError(f"Hand Rank Out Of Range: {rank}")
 
     def get_equity(self, community_cards: list[str], samples: int = 5000) -> float:
-        """Placeholder equity calculation function. You do not have to implement a function like this but some sort of equity calculation is highly recommended."""
+        ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
+        suits = ["s", "h", "d", "c"]
 
-        return 0.0
+        ownHandType = self.get_hand_type(community_cards)
+
+        winNum = 0
+        chopNum = 0
+        lossNum = 0
+
+        total = 0
+
+        for rank1 in ranks:
+            for suit1 in suits:
+                for rank2 in ranks:
+                    for suit2 in suits:
+                        handType = self.get_hand_type_test(
+                            [rank1 + suit1, rank2 + suit2], community_cards
+                        )
+                        if ownHandType < handType:
+                            winNum += 1
+                        elif ownHandType > handType:
+                            lossNum += 1
+                        else:
+
+                            chopNum += 1
+                        total += 1
+
+        return (winNum + chopNum / 2) / total
+
+    def aggression_heuristic(bet, min_bet):
+        if bet < min_bet:
+            return 0.0
+
+        # between 1 and 3xbig blind interpolate to 0.5
+        if bet < min_bet * 3:
+            return lerp(min_bet, min_bet * 3, bet) * 0.5
+
+        return max(0.0, min(1.0, lerp(min_bet * 3, min_bet * 6, bet)))
+
+    def get_pot(self, round_history):
+        if round_history == []:
+            return 0
+        if len(round_history) == 1:
+            return round_history[0][1]
+        return round_history[-1][1] + round_history[-2][1]
 
     def move(
         self,
@@ -52,7 +107,19 @@ class MyPlayer(Player):
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this.
         """
 
-        # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
+        # calculate aggression of opponent move
+        if len(round_history > 0):
+            self.opponent_aggression *= math.ceil(len(round_history) / 2) - 1
+            self.opponent_aggression += self.aggression_heuristic(
+                round_history[-1][1] or 0, min_bet
+            )
+            self.opponent_aggression /= math.ceil(len(round_history) / 2)
+        else:
+            self.opponent_aggression = 0.5
+
+        equity = self.get_equity(community_cards)
+        bet_amount = 
+
         return Move.FOLD
 
 
