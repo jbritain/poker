@@ -115,7 +115,6 @@ class MyPlayer(Player):
                 if self.cards[0][0] == self.cards[1][0]
                 else HandRank.HIGH_CARD
             )
-
         rank = evaluate_cards(*community_cards, *self.cards)
         for hand_type in HandRank:
             if rank <= hand_type.value:
@@ -236,20 +235,18 @@ class MyPlayer(Player):
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         elif len(community_cards) >= 3:
+            print(round_history)
             if len(round_history) == 0:
-                Action = self.SBpostFlopAction(self.opponent_aggression, community_cards, min_bet)
-            elif len(round_history) == 1:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
             else:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
+                Action = self.SBPostFlopAction(round_history, min_bet, community_cards)
         # this is my code to play post flop idk if it works hopefully it makes sense
         amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
 
         return Action
     
-    def BBPostFlopAction(self, round_history, min_bet, community_cards):
-        #OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
-        OpAction, OPAmount = 0, 0
+    def SBPostFlopAction(self, round_history, min_bet, community_cards):
+        OpAction, OPAmount = round_history[-1]
         equity = self.get_equity(community_cards)
         self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, equity, min_bet)
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
@@ -263,6 +260,17 @@ class MyPlayer(Player):
                 return Move.RAISE, min_bet
         elif OpAction == Move.CHECK:
             return Move.CHECK
+
+    def BBPostFlopAction(self, round_history, min_bet, community_cards):
+        equity = self.get_equity(community_cards)
+        if equity < 0.4:
+            return Move.CHECK
+        if 0.4 < equity < 0.6:
+            return Move.BET, min_bet * (1+(1-self.average_opponent_aggression))
+        if 0.6 < equity < 0.8:
+            return Move.BET, min_bet * (3+(1-self.average_opponent_aggression))
+        if equity > 0.8:
+            return Move.BET, min_bet * (6+(1-self.average_opponent_aggression))
 
     def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
         if round_history[2][0] == Move.RAISE and round_history[2][1] >= 3*raiseAmount:
@@ -304,17 +312,6 @@ class MyPlayer(Player):
             return Move.CALL
         if key in self.weak:
             return Move.FOLD
-        
-    def SBpostFlopAction(self, aggression, community_cards, min_bet):
-        equity = self.get_equity(community_cards)
-        if equity < 0.4:
-            return Move.CHECK
-        if 0.4 < equity < 0.6:
-            return Move.BET, min_bet * (1+(1-aggression))
-        if 0.6 < equity < 0.8:
-            return Move.BET, min_bet * (3+(1-aggression))
-        if equity > 0.8:
-            return Move.BET, min_bet * (6+(1-aggression))
 
     def key(self):
         key = self.cards[0][0] + self.cards[1][0]
