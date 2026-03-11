@@ -11,7 +11,7 @@ import math
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 10
+MATCHES = 100
 # For development I recommend not processing in parallel as it can make it much harder to find errors
 PARALLEL = True
 
@@ -611,7 +611,7 @@ class CleverPlayer(Player):
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), CleverPlayer()
+    p1, p2 = MyPlayer(), RandomPlayer()
     game = Game(p1, p2, debug=False)
     return game.simulate_hands().name
 
