@@ -228,7 +228,18 @@ class MyPlayer(Player):
             return Move.CALL
         if key in self.weak:
             return Move.FOLD
-    
+        
+    def SBpostFlopAction(self, aggression, community_cards, min_bet):
+        equity = self.get_equity(community_cards)
+        if equity < 0.4:
+            return Move.CHECK
+        if 0.4 < equity < 0.6:
+            return Move.BET, min_bet * (1+(1-aggression))
+        if 0.6 < equity < 0.8:
+            return Move.BET, min_bet * (3+(1-aggression))
+        if equity > 0.8:
+            return Move.BET, min_bet * (6+(1-aggression))
+
     def key(self):
         key = self.cards[0][0] + self.cards[1][0]
         if self.cards[0][:-1] == self.cards[1][:-1]:
