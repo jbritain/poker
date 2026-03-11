@@ -11,7 +11,7 @@ import math
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 1
+MATCHES = 10
 # For development I recommend not processing in parallel as it can make it much harder to find errors
 PARALLEL = False
 
@@ -210,17 +210,17 @@ class MyPlayer(Player):
         """
 
         # calculate aggression of opponent move, update average aggression
-        if len(round_history > 0):
+        if len(round_history) > 0:
             self.opponent_aggression *= math.ceil(len(round_history) / 2) - 1
             self.opponent_aggression += self.aggression_heuristic(
                 round_history[-1][1] or 0, min_bet
             )
             self.opponent_aggression /= math.ceil(len(round_history) / 2)
         else:
-            self.rounds_played += 1
-            self.average_opponent_aggression *= self.rounds_played
+            self.hands_played += 1
+            self.average_opponent_aggression *= self.hands_played
             self.average_opponent_aggression += self.opponent_aggression
-            self.average_opponent_aggression /= (self.rounds_played + 1)
+            self.average_opponent_aggression /= (self.hands_played + 1)
             self.opponent_aggression = 0.5
 
         Action = Move.FOLD
@@ -234,11 +234,11 @@ class MyPlayer(Player):
                 Action = self.SBpreFlopAction(key, suited, min_bet)
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
-        elif len(community_cards) == 3:
-            if len(round_history) == 3:
-                Action = self.BBPostFlopAction(key, suited, min_bet, round_history)
-            elif len(round_history) == 2:
-                Action = self.SBPostFlopAction(key, suited, min_bet)
+        elif len(community_cards) >= 3:
+            if len(round_history) == 0:
+                Action = self.SBPostFlopAction(key, suited, min_bet, round_history)
+            elif len(round_history) == 1:
+                Action = self.BBPostFlopAction(key, suited, min_bet)
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         # this is my code to play post flop idk if it works hopefully it makes sense
@@ -247,6 +247,7 @@ class MyPlayer(Player):
         return Action
     
     def BBPostFlopAction(self, round_history, min_bet, community_cards):
+        print(round_history)
         OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
         equity = self.get_equity(community_cards)
         self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, equity, min_bet)
