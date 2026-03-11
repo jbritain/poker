@@ -186,10 +186,20 @@ class MyPlayer(Player):
 
         return Action
     
+    def BBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+        OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
+        if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
+            pass
+        if OpAction == Move.RAISE:
+            pass
+        elif OpAction == Move.CHECK:
+            pass
 
+    def SBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+        Strentgh = evaluate_cards(*community_cards, *self.cards)
     
     def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
-        if round_history[2][0] == Move.RAISE and round_history[2][1] >= raiseAmount:
+        if round_history[2][0] == Move.RAISE and round_history[2][1] >= 3*raiseAmount:
             if key in self.UltraPremiums:
                 return Move.RAISE, 5*raiseAmount
             if key in self.premiums:
