@@ -4,6 +4,7 @@ from logic import Move, Game, Player, HandRank, RockyPlayer, RandomPlayer
 from collections import Counter
 from multiprocessing import Pool, cpu_count
 import random
+import math
 
 # Feel free to set a seed for testing, otherwise leave commmented out to test your bot in a variety of random spots
 # Note that you cannot set a seed and run the simulation in parallel
@@ -29,6 +30,12 @@ class MyPlayer(Player):
     def __init__(self):
         super().__init__() # ong we all sliming ethan 
         self.PreFlopActionhistory = []
+
+        self.opponent_aggression = 0.5
+        self.average_opponent_aggression = (
+            0.5  # 1 = maximally aggressive, 0.5 = minimally aggressive
+        )
+        self.hands_played = 0
 
         self.UltraPremiums = [
         "AA", "KK", "QQ", "JJ", "TT",
@@ -175,7 +182,7 @@ class MyPlayer(Player):
             return round_history[0][1]
         return round_history[-1][1] + round_history[-2][1]
 
-    def aggression_heuristic(bet, min_bet):
+    def aggression_heuristic(self,bet, min_bet):
         if bet < min_bet:
             return 0.0
 
@@ -185,7 +192,7 @@ class MyPlayer(Player):
 
         return saturate(lerp(min_bet * 3, min_bet * 6, bet))
     
-    def get_bet_amount(current_opponent_aggression, average_opponent_aggression, equity, min_bet):
+    def get_bet_amount(self,current_opponent_aggression, average_opponent_aggression, equity, min_bet):
         aggression_ratio = current_opponent_aggression / average_opponent_aggression
         aggression_ratio = saturate(lerp(0, 2, aggression_ratio))
         
@@ -201,6 +208,21 @@ class MyPlayer(Player):
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this.
         """
+
+        # calculate aggression of opponent move, update average aggression
+        if len(round_history > 0):
+            self.opponent_aggression *= math.ceil(len(round_history) / 2) - 1
+            self.opponent_aggression += self.aggression_heuristic(
+                round_history[-1][1] or 0, min_bet
+            )
+            self.opponent_aggression /= math.ceil(len(round_history) / 2)
+        else:
+            self.rounds_played += 1
+            self.average_opponent_aggression *= self.rounds_played
+            self.average_opponent_aggression += self.opponent_aggression
+            self.average_opponent_aggression /= (self.rounds_played + 1)
+            self.opponent_aggression = 0.5
+
         Action = Move.FOLD
 
         key, suited = self.key()
@@ -211,6 +233,9 @@ class MyPlayer(Player):
                 Action = self.SBpreFlopAction(key, suited, min_bet)
         elif len(community_cards) == 3:
             print(community_cards)
+
+        # this is my code to play post flop idk if it works hopefully it makes sense
+        amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
 
         return Action
     
