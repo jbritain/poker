@@ -31,6 +31,8 @@ class MyPlayer(Player):
         super().__init__() # ong we all sliming ethan 
         self.PreFlopActionhistory = []
 
+        OpALLINCallRate = 0
+
         self.opponent_aggression = 0.5
         self.average_opponent_aggression = (
             0.5  # 1 = maximally aggressive, 0.5 = minimally aggressive
@@ -226,6 +228,19 @@ class MyPlayer(Player):
         Action = Move.FOLD
 
         key, suited = self.key()
+
+        try:
+            OpAction, OPAmount = round_history[-1]
+
+            if OpAction == Move.ALL_IN:
+                self.OpALLINCallRate += 1
+            if (self.OpALLINCallRate // self.hands_played) > 0.4 and self.hands_played > 10:
+                if key in self.premiums:
+                    return Move.CALL
+            if max_bet < 1000 and self.cards in self.premiums:
+                return Move.ALL_IN
+        except:
+            pass
 
         # this is my code to play post flop idk if it works hopefully it makes sense
         amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
