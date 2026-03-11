@@ -106,26 +106,53 @@ class MyPlayer(Player):
 
         return 0.0
 
-    def move(
-        self,
-        community_cards: list[str],
-        valid_moves: list[Move],
-        round_history: list[tuple[Move, int]],
-        min_bet: int,
-        max_bet: int,
-    ) -> tuple[Move, int] | Move:
+    def move(self, community_cards: list[str], valid_moves: list[Move], round_history: list[tuple[Move, int]], min_bet: int, max_bet: int,) -> tuple[Move, int] | Move:
         """Your move code here! You are given the community cards (cards both players have access to, the objective is to use your 2 cards (self.cards) with the community cards to make the best 5-card poker hand).
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this.
         """
+        raiseAmount = 300
+        Action = Move.FOLD
 
         key, suited = self.key()
         if len(community_cards) == 0:
-            Action = self.preFlopAction(key, suited)
+            if len(round_history) == 3:
+                Action = self.BBpreFlopAction(key, suited, raiseAmount, round_history)
+            elif len(round_history) == 2:
+                Action = self.SBpreFlopAction(key, suited, raiseAmount)
 
-        return Move.FOLD
+        return Action
     
-    def preFlopAction(self, key, suited):
+    def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
+        if round_history[2][0] == Move.RAISE and round_history[2][1] >= 500:
+            if key in self.UltraPremiums:
+                return Move.RAISE, 5*raiseAmount
+            if key in self.premiums:
+                return Move.RAISE, 2*raiseAmount
+            else:
+                return Move.FOLD
+            
+        if round_history[2][0] == Move.RAISE:
+            if key in self.UltraPremiums:
+                return Move.RAISE, 3*raiseAmount
+            if key in self.premiums:
+                return Move.RAISE, raiseAmount
+            if key in self.Playable:
+                return Move.CALL
+            
+        if round_history[2][0] == Move.CALL:
+            if key in self.UltraPremiums:
+                return Move.RAISE, 2*raiseAmount
+            if key in self.premiums:
+                return Move.RAISE, raiseAmount
+            if key in self.Playable:
+                return Move.CALL
+            if key in self.weak:
+                return Move.CHECK
+            
+        return Move.CHECK
+    
+    def SBpreFlopAction(self, key, suited):
         if key in self.UltraPremiums:
             return Move.RAISE, 1200
         if key in self.premiums:
@@ -133,10 +160,9 @@ class MyPlayer(Player):
         if key in self.Playable and suited:
             return Move.RAISE, 300
         if key in self.Playable and not suited:
-            return Move.CHECK
+            return Move.CALL
         if key in self.weak:
             return Move.FOLD
-        pass
     
     def key(self):
         key = self.cards[0][0] + self.cards[1][0]
