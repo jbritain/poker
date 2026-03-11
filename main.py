@@ -49,41 +49,48 @@ class MyPlayer(Player):
             "A4", "A3", "A2",
 
             # Kx
-            "K9", "K8", "K7", "K6", "K5", "K4", "K3", "K2",
+            "K9", "K8", "K7", "K6", "K5", "K4", "K3",
 
             # Qx
-            "Q9", "Q8", "Q7", "Q6", "Q5", "Q4", "Q3", "Q2",
+            "Q9", "Q8", "Q7", "Q6", "Q5", "Q4",
 
             # Jx
-            "J9", "J8", "J7", "J6", "J5", "J4", "J3", "J2",
+            "J9", "J8", "J7", "J6", "J5",
 
             # Tx
-            "T8", "T7", "T6", "T5", "T4", "T3", "T2",
+            "T8", "T7", "T6", "T5"
 
             # 9x
-            "98", "97", "96", "95", "94", "93", "92",
+            "98", "97", "96",
 
             # 8x
-            "87", "86", "85", "84", "83", "82",
+            "87", "86",
 
             # 7x
-            "76", "75", "74", "73", "72",
+            "76", "75",
 
             # 6x
-            "65", "64", "63", "62",
+            "65", "64"
 
             # 5x
-            "54", "53", "52",
+            "54",
 
             # 4x
-            "43", "42",
-
-            # 3x / 2x
-            "32"
-        ]
+            "43"
+            ]
     
         self.weak = [
-            "93", "94", "83", "84", "72", "62", "52", "42"
+            "K2",
+            "Q3", "Q2",
+            "J4", "J3", "J2",
+            "T4", "T3", "T2", 
+            "95", "94", "93", "92", 
+            "85", "84", "83", "82", 
+            "74", "73", "72", 
+            "63", "62", 
+            "53", "52", 
+            "42", 
+            "32"
         ]
 
     def get_hand_type(self, community_cards: list[str]) -> HandRank:
@@ -111,20 +118,23 @@ class MyPlayer(Player):
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this.
         """
-        raiseAmount = 300
         Action = Move.FOLD
 
         key, suited = self.key()
         if len(community_cards) == 0:
             if len(round_history) == 3:
-                Action = self.BBpreFlopAction(key, suited, raiseAmount, round_history)
+                Action = self.BBpreFlopAction(key, suited, min_bet, round_history)
             elif len(round_history) == 2:
-                Action = self.SBpreFlopAction(key, suited, raiseAmount)
+                Action = self.SBpreFlopAction(key, suited, min_bet)
+        elif len(community_cards) == 3:
+            print(community_cards)
 
         return Action
     
+
+    
     def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
-        if round_history[2][0] == Move.RAISE and round_history[2][1] >= 500:
+        if round_history[2][0] == Move.RAISE and round_history[2][1] >= raiseAmount:
             if key in self.UltraPremiums:
                 return Move.RAISE, 5*raiseAmount
             if key in self.premiums:
