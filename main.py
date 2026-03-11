@@ -11,9 +11,9 @@ import math
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 1
+MATCHES = 10
 # For development I recommend not processing in parallel as it can make it much harder to find errors
-PARALLEL = False
+PARALLEL = True
 
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
 def lerp(a: float, b: float, t: float) -> float:
@@ -241,6 +241,26 @@ class MyPlayer(Player):
                 Action = self.SBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
         # this is my code to play post flop idk if it works hopefully it makes sense
         amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
+        try:
+            if Action[0] == Move.BET:
+                if Action[1] < min_bet:
+                    Action = (Move.BET, min_bet)
+                if Action[1] > max_bet:
+                    Action = (Move.BET, max_bet)
+            
+            if Action[0] == Move.RAISE:
+                if Action[1] < min_bet:
+                    Action = (Move.RAISE, min_bet)
+                if Action[1] > max_bet:
+                    Action = (Move.RAISE, max_bet)
+        except:
+            pass
+        
+        if Action not in valid_moves and not type(Action) is tuple:
+            if Move.CHECK in valid_moves:
+                Action = Move.CHECK
+            else:
+                Action = Move.FOLD
 
         return Action
     
@@ -495,24 +515,22 @@ class CleverPlayer(Player):
         
         if len(community_cards) == 0:
             if len(round_history) == 3:
-                Action = self.BBpreFlopAction(key, suited, min_bet, round_history)
+                Action = self.BBpreFlopAction(key, suited, min_bet, round_history, valid_moves)
             elif len(round_history) == 2:
                 Action = self.SBpreFlopAction(key, min_bet, suited)
             else:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
-        elif len(community_cards) == 3:
-            if len(round_history) == 3:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
-            elif len(round_history) == 2:
-                Action = self.SBpostFlopAction(community_cards, min_bet)
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
+        elif len(community_cards) >= 3:
+            if len(round_history) == 0:
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
             else:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
+                Action = self.SBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
+
 
         return Action
     
-    def BBPostFlopAction(self, round_history, min_bet, community_cards):
-        #OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
-        OpAction, OPAmount = 0, 0
+    def SBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+        OpAction, OPAmount = round_history[-1]
         equity = self.get_equity(community_cards)
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
             if equity > 0.8:
@@ -520,14 +538,30 @@ class CleverPlayer(Player):
         elif OpAction == Move.RAISE:
             if equity > 0.65:
                 return Move.RAISE, min_bet
+            if equity > 0.5:
+                return Move.CALL
         elif OpAction == Move.CHECK:
             if equity >= 0.5:
-                return Move.RAISE, min_bet
-        elif OpAction == Move.CHECK:
+                return Move.BET, min_bet
             return Move.CHECK
 
-    def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
-        if round_history[2][0] == Move.RAISE and round_history[2][1] >= 3*raiseAmount:
+    def BBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+        equity = self.get_equity(community_cards)
+        if equity < 0.4:
+            return Move.CHECK
+        if 0.4 < equity < 0.6:
+            return Move.BET, min_bet * (1+(1-self.average_opponent_aggression))
+        if 0.6 < equity < 0.8:
+            return Move.BET, min_bet * (3+(1-self.average_opponent_aggression))
+        if equity > 0.8:
+            return Move.BET, min_bet * (6+(1-self.average_opponent_aggression))
+
+    def BBpreFlopAction(self, key, suited, raiseAmount, round_history, valid_moves):
+        if round_history[-1][0] == Move.ALL_IN:
+            if key in self.UltraPremiums:
+                return Move.ALL_IN
+            
+        if round_history[-1][0] == Move.RAISE and round_history[-1][1] >= 3*raiseAmount:
             if key in self.UltraPremiums:
                 return Move.RAISE, 5*raiseAmount
             if key in self.premiums:
@@ -535,7 +569,7 @@ class CleverPlayer(Player):
             else:
                 return Move.FOLD
             
-        if round_history[2][0] == Move.RAISE:
+        if round_history[-1][0] == Move.RAISE:
             if key in self.UltraPremiums:
                 return Move.RAISE, 3*raiseAmount
             if key in self.premiums:
@@ -543,15 +577,12 @@ class CleverPlayer(Player):
             if key in self.Playable:
                 return Move.CALL
             
-        if round_history[2][0] == Move.CALL:
+        if round_history[-1][0] == Move.CALL:
             if key in self.UltraPremiums:
-                return Move.RAISE, 2*raiseAmount
+                return Move.BET, 2*raiseAmount
             if key in self.premiums:
-                return Move.RAISE, raiseAmount
-            if key in self.Playable:
-                return Move.CALL
-            if key in self.weak:
-                return Move.CHECK
+                return Move.BET, raiseAmount
+            return Move.CHECK
             
         return Move.CHECK
     
@@ -566,17 +597,6 @@ class CleverPlayer(Player):
             return Move.CALL
         if key in self.weak:
             return Move.FOLD
-        
-    def SBpostFlopAction(self, community_cards, min_bet):
-        equity = self.get_equity(community_cards)
-        if equity < 0.4:
-            return Move.CHECK
-        if 0.4 < equity < 0.6:
-            return Move.BET, min_bet
-        if 0.6 < equity < 0.8:
-            return Move.BET, min_bet * 3
-        if equity > 0.8:
-            return Move.BET, min_bet * 6
 
     def key(self):
         key = self.cards[0][0] + self.cards[1][0]
@@ -589,8 +609,8 @@ class CleverPlayer(Player):
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), RandomPlayer()
-    game = Game(p1, p2, debug=True)
+    p1, p2 = MyPlayer(), RockyPlayer()
+    game = Game(p1, p2, debug=False)
     return game.simulate_hands().name
 
 
