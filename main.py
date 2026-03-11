@@ -226,21 +226,23 @@ class MyPlayer(Player):
         Action = Move.FOLD
 
         key, suited = self.key()
+
+        # this is my code to play post flop idk if it works hopefully it makes sense
+        amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
         
         if len(community_cards) == 0:
             if len(round_history) == 3:
-                Action = self.BBpreFlopAction(key, suited, min_bet, round_history, valid_moves)
+                Action = self.BBpreFlopAction(key, suited, min_bet, round_history, valid_moves, amount_to_bet)
             elif len(round_history) == 2:
-                Action = self.SBpreFlopAction(key, min_bet, suited)
+                Action = self.SBpreFlopAction(key, min_bet, suited, amount_to_bet)
             else:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves, amount_to_bet)
         elif len(community_cards) >= 3:
             if len(round_history) == 0:
-                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards, valid_moves, amount_to_bet)
             else:
-                Action = self.SBPostFlopAction(round_history, min_bet, community_cards, valid_moves)
-        # this is my code to play post flop idk if it works hopefully it makes sense
-        amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
+                Action = self.SBPostFlopAction(round_history, min_bet, community_cards, valid_moves, amount_to_bet)
+        
         try:
             if Action[0] == Move.BET:
                 if Action[1] < min_bet:
@@ -264,71 +266,71 @@ class MyPlayer(Player):
 
         return Action
     
-    def SBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+    def SBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves, amount_to_bet):
         OpAction, OPAmount = round_history[-1]
         equity = self.get_equity(community_cards)
-        self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, equity, min_bet)
+        
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
             if equity > 0.8:
-                return Move.RAISE, 3*min_bet
+                return Move.RAISE, 3*amount_to_bet
         elif OpAction == Move.RAISE:
             if equity > 0.65:
-                return Move.RAISE, min_bet
+                return Move.RAISE, amount_to_bet
             if equity > 0.5:
                 return Move.CALL
         elif OpAction == Move.CHECK:
             if equity >= 0.5:
-                return Move.BET, min_bet
+                return Move.BET, amount_to_bet
             return Move.CHECK
 
-    def BBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
+    def BBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves, amount_to_bet):
         equity = self.get_equity(community_cards)
         if equity < 0.4:
             return Move.CHECK
         if 0.4 < equity < 0.6:
-            return Move.BET, min_bet * (1+(1-self.average_opponent_aggression))
+            return Move.BET, amount_to_bet * (1+(1-self.average_opponent_aggression))
         if 0.6 < equity < 0.8:
-            return Move.BET, min_bet * (3+(1-self.average_opponent_aggression))
+            return Move.BET, amount_to_bet * (3+(1-self.average_opponent_aggression))
         if equity > 0.8:
-            return Move.BET, min_bet * (6+(1-self.average_opponent_aggression))
+            return Move.BET, amount_to_bet * (6+(1-self.average_opponent_aggression))
 
-    def BBpreFlopAction(self, key, suited, raiseAmount, round_history, valid_moves):
+    def BBpreFlopAction(self, key, suited, raiseAmount, round_history, valid_moves, amount_to_bet):
         if round_history[-1][0] == Move.ALL_IN:
             if key in self.UltraPremiums:
                 return Move.ALL_IN
             
         if round_history[-1][0] == Move.RAISE and round_history[-1][1] >= 3*raiseAmount:
             if key in self.UltraPremiums:
-                return Move.RAISE, 5*raiseAmount
+                return Move.RAISE, 5*amount_to_bet
             if key in self.premiums:
-                return Move.RAISE, 2*raiseAmount
+                return Move.RAISE, 2*amount_to_bet
             else:
                 return Move.FOLD
             
         if round_history[-1][0] == Move.RAISE:
             if key in self.UltraPremiums:
-                return Move.RAISE, 3*raiseAmount
+                return Move.RAISE, 3*amount_to_bet
             if key in self.premiums:
-                return Move.RAISE, raiseAmount
+                return Move.RAISE, amount_to_bet
             if key in self.Playable:
                 return Move.CALL
             
         if round_history[-1][0] == Move.CALL:
             if key in self.UltraPremiums:
-                return Move.BET, 2*raiseAmount
+                return Move.BET, 2*amount_to_bet
             if key in self.premiums:
-                return Move.BET, raiseAmount
+                return Move.BET, amount_to_bet
             return Move.CHECK
             
         return Move.CHECK
     
-    def SBpreFlopAction(self, key, raiseAmount, suited):
+    def SBpreFlopAction(self, key, raiseAmount, suited, amount_to_bet):
         if key in self.UltraPremiums:
-            return Move.RAISE, 4*raiseAmount
+            return Move.RAISE, 4*amount_to_bet
         if key in self.premiums:
-            return Move.RAISE, 2*raiseAmount
+            return Move.RAISE, 2*amount_to_bet
         if key in self.Playable and suited:
-            return Move.RAISE, raiseAmount
+            return Move.RAISE, amount_to_bet
         if key in self.Playable and not suited:
             return Move.CALL
         if key in self.weak:
@@ -609,7 +611,7 @@ class CleverPlayer(Player):
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), RockyPlayer()
+    p1, p2 = MyPlayer(), CleverPlayer()
     game = Game(p1, p2, debug=False)
     return game.simulate_hands().name
 
