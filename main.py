@@ -226,6 +226,7 @@ class MyPlayer(Player):
         Action = Move.FOLD
 
         key, suited = self.key()
+        
         if len(community_cards) == 0:
             if len(round_history) == 3:
                 Action = self.BBpreFlopAction(key, suited, min_bet, round_history)
@@ -234,8 +235,12 @@ class MyPlayer(Player):
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         elif len(community_cards) == 3:
-            print(community_cards)
-
+            if len(round_history) == 3:
+                Action = self.BBPostFlopAction(key, suited, min_bet, round_history)
+            elif len(round_history) == 2:
+                Action = self.SBPostFlopAction(key, suited, min_bet)
+            else:
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         # this is my code to play post flop idk if it works hopefully it makes sense
         amount_to_bet = self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, self.get_equity(community_cards), min_bet)
 
@@ -244,7 +249,7 @@ class MyPlayer(Player):
     def BBPostFlopAction(self, round_history, min_bet, community_cards):
         OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
         equity = self.get_equity(community_cards)
-        betAdjustment = self.getBetAdjustment()
+        self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, equity, min_bet)
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
             if equity > 0.8:
                 return Move.RAISE, 3*min_bet
