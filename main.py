@@ -152,13 +152,13 @@ class MyPlayer(Player):
             
         return Move.CHECK
     
-    def SBpreFlopAction(self, key, suited):
+    def SBpreFlopAction(self, key, raiseAmount, suited):
         if key in self.UltraPremiums:
-            return Move.RAISE, 1200
+            return Move.RAISE, 4*raiseAmount
         if key in self.premiums:
-            return Move.RAISE, 600
+            return Move.RAISE, 2*raiseAmount
         if key in self.Playable and suited:
-            return Move.RAISE, 300
+            return Move.RAISE, raiseAmount
         if key in self.Playable and not suited:
             return Move.CALL
         if key in self.weak:
