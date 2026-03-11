@@ -259,7 +259,6 @@ class MyPlayer(Player):
         elif OpAction == Move.CHECK:
             if equity >= 0.5:
                 return Move.BET, min_bet
-        elif OpAction == Move.CHECK:
             return Move.CHECK
 
     def BBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
@@ -590,7 +589,7 @@ class CleverPlayer(Player):
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), RockyPlayer()
+    p1, p2 = MyPlayer(), RandomPlayer()
     game = Game(p1, p2, debug=True)
     return game.simulate_hands().name
 
