@@ -25,7 +25,7 @@ def saturate(v):
 
 class MyPlayer(Player):
     name = "crAAcked"
-    image_path = "images/your_image.png"  # Optional
+    image_path = "images/image.png"  # Optional
 
     def __init__(self):
         super().__init__() # ong we all sliming ethan 
