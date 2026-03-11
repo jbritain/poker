@@ -10,13 +10,80 @@ import random
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 1000
+MATCHES = 1
 # For development I recommend not processing in parallel as it can make it much harder to find errors
 PARALLEL = False
 
 class MyPlayer(Player):
     name = 'Name your bot/Team name'
     image_path = 'images/your_image.png' # Optional
+
+    def __init__(self):
+        super().__init__() # ong we all sliming ethan 
+        self.PreFlopActionhistory = []
+
+        self.UltraPremiums = [
+        "AA", "KK", "QQ", "JJ", "TT",
+        "AK", "AQ", "AJ", "AT"
+        ]
+
+        self.premiums = [
+            # Strong pairs
+            "99", "88", "77", "66",
+
+            # Strong Ax
+            "A9", "A8", "A7", "A6", "A5",
+
+            # Broadways
+            "KQ", "KJ", "KT",
+            "QJ", "QT",
+            "JT", "T9",
+
+            # Medium pairs
+            "55", "44", "33", "22"
+        ]
+    
+        self.Playable = [
+            # Remaining Ax
+            "A4", "A3", "A2",
+
+            # Kx
+            "K9", "K8", "K7", "K6", "K5", "K4", "K3", "K2",
+
+            # Qx
+            "Q9", "Q8", "Q7", "Q6", "Q5", "Q4", "Q3", "Q2",
+
+            # Jx
+            "J9", "J8", "J7", "J6", "J5", "J4", "J3", "J2",
+
+            # Tx
+            "T8", "T7", "T6", "T5", "T4", "T3", "T2",
+
+            # 9x
+            "98", "97", "96", "95", "94", "93", "92",
+
+            # 8x
+            "87", "86", "85", "84", "83", "82",
+
+            # 7x
+            "76", "75", "74", "73", "72",
+
+            # 6x
+            "65", "64", "63", "62",
+
+            # 5x
+            "54", "53", "52",
+
+            # 4x
+            "43", "42",
+
+            # 3x / 2x
+            "32"
+        ]
+    
+        self.weak = [
+            "93", "94", "83", "84", "72", "62", "52", "42"
+        ]
 
     def get_hand_type(self, community_cards: list[str]) -> HandRank:
         # Handle pre flop calls
@@ -39,9 +106,33 @@ class MyPlayer(Player):
         You are also given a list containing the legal moves you can currently make, for example, if the opponent has bet then you can only call, raise or fold but cannot check.
         If your bot attempts to make an illegal move it will fold its hand (forfeiting any chips already in the pot), so ensure not to do this."""
 
-        
-        # self.get_hand_type(community_cards) == HandRank.THREE_OF_A_KIND
+        key, suited = self.key()
+        if len(community_cards) == 0:
+            Action = self.preFlopAction(key, suited)
+
         return Move.FOLD
+    
+    def preFlopAction(self, key, suited):
+        if key in self.UltraPremiums:
+            return Move.RAISE, 1200
+        if key in self.premiums:
+            return Move.RAISE, 600
+        if key in self.Playable and suited:
+            return Move.RAISE, 300
+        if key in self.Playable and not suited:
+            return Move.CHECK
+        if key in self.weak:
+            return Move.FOLD
+        pass
+    
+    def key(self):
+        key = self.cards[0][0] + self.cards[1][0]
+        if self.cards[0][:-1] == self.cards[1][:-1]:
+            suited = True
+        else:
+            suited = False
+        return key, suited
+    
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
