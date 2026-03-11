@@ -11,9 +11,9 @@ import math
 # random.seed(6767)
 
 # How many heads up matches you want to simulate
-MATCHES = 10
+MATCHES = 100
 # For development I recommend not processing in parallel as it can make it much harder to find errors
-PARALLEL = False
+PARALLEL = True
 
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
 def lerp(a: float, b: float, t: float) -> float:
@@ -163,15 +163,16 @@ class MyPlayer(Player):
             for suit1 in suits:
                 for rank2 in ranks:
                     for suit2 in suits:
-                        handType = self.get_hand_type_test([rank1+suit1,rank2+suit2],community_cards)
-                        if ownHandType < handType:
-                            winNum += 1
-                        elif ownHandType > handType:
-                            lossNum += 1
-                        else:
+                        if rank1+suit1 != rank2+suit2 and rank1+suit1 not in community_cards and rank2+suit2 not in community_cards:
+                            handType = self.get_hand_type_test([rank1+suit1,rank2+suit2],community_cards)
+                            if ownHandType < handType:
+                                winNum += 1
+                            elif ownHandType > handType:
+                                lossNum += 1
+                            else:
 
-                            chopNum += 1
-                        total += 1
+                                chopNum += 1
+                            total += 1
 
         return((winNum + chopNum/2)/total)
 
@@ -231,14 +232,14 @@ class MyPlayer(Player):
             if len(round_history) == 3:
                 Action = self.BBpreFlopAction(key, suited, min_bet, round_history)
             elif len(round_history) == 2:
-                Action = self.SBpreFlopAction(key, suited, min_bet)
+                Action = self.SBpreFlopAction(key, min_bet, suited)
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         elif len(community_cards) >= 3:
             if len(round_history) == 0:
-                Action = self.SBPostFlopAction(key, suited, min_bet, round_history)
+                Action = self.SBpostFlopAction(self.opponent_aggression, community_cards, min_bet)
             elif len(round_history) == 1:
-                Action = self.BBPostFlopAction(key, suited, min_bet)
+                Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
             else:
                 Action = self.BBPostFlopAction(round_history, min_bet, community_cards)
         # this is my code to play post flop idk if it works hopefully it makes sense
@@ -247,8 +248,8 @@ class MyPlayer(Player):
         return Action
     
     def BBPostFlopAction(self, round_history, min_bet, community_cards):
-        print(round_history)
-        OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
+        #OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
+        OpAction, OPAmount = 0, 0
         equity = self.get_equity(community_cards)
         self.get_bet_amount(self.opponent_aggression, self.average_opponent_aggression, equity, min_bet)
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
@@ -262,9 +263,6 @@ class MyPlayer(Player):
                 return Move.RAISE, min_bet
         elif OpAction == Move.CHECK:
             return Move.CHECK
-
-    def SBPostFlopAction(self, round_history, min_bet, community_cards, valid_moves):
-        Strentgh = evaluate_cards(*community_cards, *self.cards)
 
     def BBpreFlopAction(self, key, suited, raiseAmount, round_history):
         if round_history[2][0] == Move.RAISE and round_history[2][1] >= 3*raiseAmount:
@@ -467,15 +465,16 @@ class CleverPlayer(Player):
             for suit1 in suits:
                 for rank2 in ranks:
                     for suit2 in suits:
-                        handType = self.get_hand_type_test([rank1+suit1,rank2+suit2],community_cards)
-                        if ownHandType < handType:
-                            winNum += 1
-                        elif ownHandType > handType:
-                            lossNum += 1
-                        else:
+                        if rank1+suit1 != rank2+suit2 and rank1+suit1 not in community_cards and rank2+suit2 not in community_cards:
+                            handType = self.get_hand_type_test([rank1+suit1,rank2+suit2],community_cards)
+                            if ownHandType < handType:
+                                winNum += 1
+                            elif ownHandType > handType:
+                                lossNum += 1
+                            else:
 
-                            chopNum += 1
-                        total += 1
+                                chopNum += 1
+                            total += 1
 
         return((winNum + chopNum/2)/total)
 
@@ -514,7 +513,8 @@ class CleverPlayer(Player):
         return Action
     
     def BBPostFlopAction(self, round_history, min_bet, community_cards):
-        OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
+        #OpAction, OPAmount = round_history[:-1][0], round_history[:-1][1]
+        OpAction, OPAmount = 0, 0
         equity = self.get_equity(community_cards)
         if OpAction == Move.RAISE and OPAmount >= 3*min_bet:
             if equity > 0.8:
@@ -591,8 +591,8 @@ class CleverPlayer(Player):
 
 def run_match(_: int) -> str:
     """Run a single match and return the winner's name."""
-    p1, p2 = MyPlayer(), RandomPlayer()
-    game = Game(p1, p2, debug=True)
+    p1, p2 = MyPlayer(), RockyPlayer()
+    game = Game(p1, p2, debug=False)
     return game.simulate_hands().name
 
 
